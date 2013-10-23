@@ -15,19 +15,21 @@ Arguments:
 	-t TTL, --ttl TTL                time to live for the rule
 """
 __author__  = 'Joshua Sherman'
-__file__	= 'tmpufw'
+__file__    = 'tmpufw'
 __license__ = 'MIT'
-__status__  = 'Production'
+__status__  = 'Development'
 __version__ = '1.0.0'
 
-import argparse
-import os
-from subprocess import call
-import sys
+from argparse import ArgumentParser
+from os import makedirs, path
+from parsedatetime import Calendar
+from subprocess import CalledProcessError,  check_output, STDOUT
+from sys import exit
+from time import mktime
 
 class tmpufw(object):
 
-	parser = argparse.ArgumentParser(description = 'Temporarily apply `ufw` rules')
+	parser = ArgumentParser(description = 'Temporarily apply `ufw` rules')
 
 	def __init__(self):
 		self.parser.add_argument('-s', '--status', action = 'store_true', help = 'show rule list with expirations')
@@ -37,10 +39,9 @@ class tmpufw(object):
 		self.parser.add_argument('-t', '--ttl', default = '30 days', help = 'time to live for the rule')
 		args = self.parser.parse_args()
 
-		if args.status and (args.clean or args.position or args.rule):
-			self.error('the --status flag must be used by itself')
-		if args.clean and (args.position or args.rule or args.status):
-			self.error('the --clean flag must be used by itself')
+		if args.status:
+			exit('TODO display rules and expirations')
+
 		elif args.clean:
 			# TODO Check for PID
 			# TODO If PID exists, exit
@@ -54,23 +55,62 @@ class tmpufw(object):
 			# TODO If expiration is in the future, add rule to tmp file
 			# TODO Move tmp file to rules file
 			# TODO Remove PID
-			sys.exit('TODO clean up expired rules')
-		elif args.rule and args.ttl:
-			# TODO Add the rule to `ufw`
-			ufw = ['ufw', 'position', args.position, args.rule]
+			exit('TODO clean up expired rules')
 
-			# TODO Convert the TTL to a timestamp
-			# TODO Add the rule and the timestamp to the end of the rules file
-			# TODO Check if the ufw rule is in fact valid (ufw has a --dry-run flag)
-			# TODO Check if rule already exists and update it instead of adding it again
-			sys.exit('TODO add rule to the database')
+		elif args.rule:
+			rules_file = '/usr/local/share/' + __file__ + '/rules'
+			rules_path = path.dirname(rules_file)
+
+			if not path.exists(rules_path):
+				makedirs(rules_path)
+
+			# Converts the TTL to a timestamp
+			cal       = Calendar()
+			timestamp = mktime(cal.parse(args.ttl)[0])
+
+			# Writes the rule to the rules file
+			try:
+				# TODO Check if rule already exists and update it instead of adding it again
+
+				handle = open(rules_file, 'a')
+				handle.write(str(timestamp) + ' ' + args.rule)
+				handle.write("\n")
+				handle.close()
+
+			except IOError:
+				self.error('Unable to write to the rules file: ' + rules_file)
+
+			# Attempts to add the rule to `ufw`
+			try:
+				self.ufw_execute('insert ' + str(args.position) + ' ' + args.rule)
+			
+			except CalledProcessError as error:
+				# Catches an error when attempting to add a rule to an empty database
+				if error.output == b"ERROR: Invalid position '1'\n":
+					try:
+						self.ufw_execute(args.rule)
+
+					except CalledProcessError as error:
+						self.ufw_error(error)	
+
+				else:
+					self.ufw_error(error)	
+
 		else:
 			self.error('no arguments specified')
 
 	def error(self, message):
 		self.parser.print_usage()
 		print(__file__ + ': error: ' + message)
-		sys.exit(2)
+		exit(2)
+
+	def ufw_execute(self, rule):
+		for arg in [' --dry-run ', ' ']:
+			command = 'ufw' + arg + rule
+			check_output(command, stderr = STDOUT, shell = True)
+
+	def ufw_error(self, error):
+		self.error('ufw: ' + error.output.decode(encoding = 'UTF-8'))	
 
 if __name__ == '__main__':
 	tmpufw()
