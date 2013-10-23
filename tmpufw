@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""
+Temporarily apply `ufw` rules
+
+This script allows you to add rules to `ufw` (Uncomplicated Firewall) with a
+time to live. You can then run the script as a cronjob (with the --clean flag)
+to clean up (remove) the expired rules.
+
+Arguments:
+	-h, --help                       show the help message and exit
+	-s, --status                     show rule list with expirations
+	-c, --clean                      clean up expired rules
+	-r RULE, --rule RULE             rule to be added to `ufw`
+	-p POSITION, --position POSITION position to add the rule
+	-t TTL, --ttl TTL                time to live for the rule
+"""
+__author__  = 'Joshua Sherman'
+__file__	= 'tmpufw'
+__license__ = 'MIT'
+__status__  = 'Production'
+__version__ = '1.0.0'
+
+import argparse
+import os
+from subprocess import call
+import sys
+
+class tmpufw(object):
+
+	parser = argparse.ArgumentParser(description = 'Temporarily apply `ufw` rules')
+
+	def __init__(self):
+		self.parser.add_argument('-s', '--status', action = 'store_true', help = 'show rule list with expirations')
+		self.parser.add_argument('-c', '--clean', action = 'store_true', help = 'clean up expired rules')
+		self.parser.add_argument('-r', '--rule', help = 'rule to be added to `ufw`')
+		self.parser.add_argument('-p', '--position', default = 1, help = 'position to add the rule')
+		self.parser.add_argument('-t', '--ttl', default = '30 days', help = 'time to live for the rule')
+		args = self.parser.parse_args()
+
+		if args.status and (args.clean or args.position or args.rule):
+			self.error('the --status flag must be used by itself')
+		if args.clean and (args.position or args.rule or args.status):
+			self.error('the --clean flag must be used by itself')
+		elif args.clean:
+			# TODO Check for PID
+			# TODO If PID exists, exit
+			# TODO If PID doesn't exist, create it
+			# TODO Check for rules file
+			# TODO If rules file doesn't exist, exit
+			# TODO If rules file does exist, open it
+			# TODO Loop through lines
+			# TODO Break apart line into rule and expiration time
+			# TODO If expiration is in the past, remove the rule
+			# TODO If expiration is in the future, add rule to tmp file
+			# TODO Move tmp file to rules file
+			# TODO Remove PID
+			sys.exit('TODO clean up expired rules')
+		elif args.rule and args.ttl:
+			# TODO Add the rule to `ufw`
+			ufw = ['ufw', 'position', args.position, args.rule]
+
+			# TODO Convert the TTL to a timestamp
+			# TODO Add the rule and the timestamp to the end of the rules file
+			# TODO Check if the ufw rule is in fact valid (ufw has a --dry-run flag)
+			# TODO Check if rule already exists and update it instead of adding it again
+			sys.exit('TODO add rule to the database')
+		else:
+			self.error('no arguments specified')
+
+	def error(self, message):
+		self.parser.print_usage()
+		print(__file__ + ': error: ' + message)
+		sys.exit(2)
+
+if __name__ == '__main__':
+	tmpufw()
