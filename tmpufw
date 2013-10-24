@@ -54,10 +54,9 @@ class tmpufw(object):
 					# Loops through the rules lines
 					for line in open(rules_file, 'r'):
 						# Breaks apart line into expiration timestamp and rule
-						timestamp, rule    = line.strip("\n").split(' ', 1)
-						timestamp, decimal = timestamp.split('.')
+						timestamp, rule = line.strip("\n").split(' ', 1)
 
-						print(str(datetime.fromtimestamp(int(timestamp))) + "\t" + rule)
+						print(str(datetime.fromtimestamp(timestamp)) + "\t" + rule)
 				except IOError:
 					self.error('unable to read from the rules file: ' + rules_file)
 			else:
@@ -107,7 +106,6 @@ class tmpufw(object):
 
 				# Removes the PID
 				remove(pid_file)
-
 		elif args.rule:
 			rules_path = path.dirname(rules_file)
 
@@ -116,7 +114,7 @@ class tmpufw(object):
 
 			# Converts the TTL to a timestamp
 			cal       = Calendar()
-			timestamp = mktime(cal.parse(args.ttl)[0])
+			timestamp = int(mktime(cal.parse(args.ttl)[0]))
 
 			# Writes the rule to the rules file
 			try:
