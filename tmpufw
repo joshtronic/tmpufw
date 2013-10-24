@@ -21,6 +21,7 @@ __status__  = 'Production'
 __version__ = '1.0.0'
 
 from argparse import ArgumentParser
+from datetime import datetime
 from os import getpid, makedirs, path, remove
 from parsedatetime import Calendar
 from shutil import move
@@ -45,7 +46,22 @@ class tmpufw(object):
 		tmp_rules_file = '/tmp/' + __file__ + '-rules'
 
 		if args.status:
-			exit('TODO display rules and expirations')
+			if path.exists(rules_file):
+				try:
+					print("Expiration\t\tRule")
+					print('=' * 80)
+
+					# Loops through the rules lines
+					for line in open(rules_file, 'r'):
+						# Breaks apart line into expiration timestamp and rule
+						timestamp, rule    = line.strip("\n").split(' ', 1)
+						timestamp, decimal = timestamp.split('.')
+
+						print(str(datetime.fromtimestamp(int(timestamp))) + "\t" + rule)
+				except IOError:
+					self.error('unable to read from the rules file: ' + rules_file)
+			else:
+				self.error('there are no rules to display')
 		elif args.clean:
 			# Checks for PID file
 			if not path.exists(pid_file):
@@ -55,7 +71,7 @@ class tmpufw(object):
 					handle.write(str(getpid()))
 					handle.close();
 				except IOError:
-					self.error('Unable to create PID file: ' + pid_file)
+					self.error('unable to create PID file: ' + pid_file)
 
 				# Checks for the rules file
 				if path.exists(rules_file):
@@ -63,7 +79,7 @@ class tmpufw(object):
 					try:
 						handle = open(tmp_rules_file, 'a')
 					except IOError:
-						self.error('Unable to write to the tmp rules file: ' + tmp_rules_file)
+						self.error('unable to write to the tmp rules file: ' + tmp_rules_file)
 
 					try:
 						current_time = time()
@@ -87,7 +103,7 @@ class tmpufw(object):
 						# Moves the tmp file to the rules file
 						move(tmp_rules_file, rules_file)
 					except IOError:
-						self.error('Unable to read rule file: ' + rules_file)
+						self.error('unable to from the read rules file: ' + rules_file)
 
 				# Removes the PID
 				remove(pid_file)
@@ -110,7 +126,7 @@ class tmpufw(object):
 				handle.write("\n")
 				handle.close()
 			except IOError:
-				self.error('Unable to write to the rules file: ' + rules_file)
+				self.error('unable to write to the rules file: ' + rules_file)
 
 			# Attempts to add the rule to `ufw`
 			try:
