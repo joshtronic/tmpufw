@@ -17,18 +17,18 @@ Arguments:
 __author__  = 'Joshua Sherman'
 __file__    = 'tmpufw'
 __license__ = 'MIT'
-__status__  = 'Development'
+__status__  = 'Production'
 __version__ = '1.0.0'
 
 from argparse import ArgumentParser
-from os import makedirs, path
+from os import getpid, makedirs, path, remove
 from parsedatetime import Calendar
+from shutil import move
 from subprocess import CalledProcessError,  check_output, STDOUT
 from sys import exit
-from time import mktime
+from time import mktime, time
 
 class tmpufw(object):
-
 	parser = ArgumentParser(description = 'Temporarily apply `ufw` rules')
 
 	def __init__(self):
@@ -39,26 +39,60 @@ class tmpufw(object):
 		self.parser.add_argument('-t', '--ttl', default = '30 days', help = 'time to live for the rule')
 		args = self.parser.parse_args()
 
+		# Our file names
+		pid_file       = '/var/run/' + __file__ + '.pid'
+		rules_file     = '/usr/local/share/' + __file__ + '/rules'
+		tmp_rules_file = '/tmp/' + __file__ + '-rules'
+
 		if args.status:
 			exit('TODO display rules and expirations')
-
 		elif args.clean:
-			# TODO Check for PID
-			# TODO If PID exists, exit
-			# TODO If PID doesn't exist, create it
-			# TODO Check for rules file
-			# TODO If rules file doesn't exist, exit
-			# TODO If rules file does exist, open it
-			# TODO Loop through lines
-			# TODO Break apart line into rule and expiration time
-			# TODO If expiration is in the past, remove the rule
-			# TODO If expiration is in the future, add rule to tmp file
-			# TODO Move tmp file to rules file
-			# TODO Remove PID
-			exit('TODO clean up expired rules')
+			# Checks for PID file
+			if not path.exists(pid_file):
+				# Creates the PID file
+				try:
+					handle = open(pid_file, 'w')
+					handle.write(str(getpid()))
+					handle.close();
+				except IOError:
+					self.error('Unable to create PID file: ' + pid_file)
+
+				# Checks for the rules file
+				if path.exists(rules_file):
+					# Opens the temporary rules file
+					try:
+						handle = open(tmp_rules_file, 'a')
+					except IOError:
+						self.error('Unable to write to the tmp rules file: ' + tmp_rules_file)
+
+					try:
+						current_time = time()
+
+						# Loops through the rules lines
+						for line in open(rules_file, 'r'):
+							# Breaks apart line into expiration timestamp and rule
+							timestamp, rule = line.strip("\n").split(' ', 1)
+
+							# Checks if rule has expired
+							if current_time < float(timestamp):
+								handle.write(line)
+							else:
+								try:
+									self.ufw_execute('delete ' + rule);
+								except CalledProcessError as error:
+									self.ufw_error(error)
+
+						handle.close()
+
+						# Moves the tmp file to the rules file
+						move(tmp_rules_file, rules_file)
+					except IOError:
+						self.error('Unable to read rule file: ' + rules_file)
+
+				# Removes the PID
+				remove(pid_file)
 
 		elif args.rule:
-			rules_file = '/usr/local/share/' + __file__ + '/rules'
 			rules_path = path.dirname(rules_file)
 
 			if not path.exists(rules_path):
@@ -71,31 +105,25 @@ class tmpufw(object):
 			# Writes the rule to the rules file
 			try:
 				# TODO Check if rule already exists and update it instead of adding it again
-
 				handle = open(rules_file, 'a')
 				handle.write(str(timestamp) + ' ' + args.rule)
 				handle.write("\n")
 				handle.close()
-
 			except IOError:
 				self.error('Unable to write to the rules file: ' + rules_file)
 
 			# Attempts to add the rule to `ufw`
 			try:
 				self.ufw_execute('insert ' + str(args.position) + ' ' + args.rule)
-			
 			except CalledProcessError as error:
 				# Catches an error when attempting to add a rule to an empty database
 				if error.output == b"ERROR: Invalid position '1'\n":
 					try:
 						self.ufw_execute(args.rule)
-
 					except CalledProcessError as error:
-						self.ufw_error(error)	
-
+						self.ufw_error(error)
 				else:
-					self.ufw_error(error)	
-
+					self.ufw_error(error)
 		else:
 			self.error('no arguments specified')
 
@@ -110,7 +138,7 @@ class tmpufw(object):
 			check_output(command, stderr = STDOUT, shell = True)
 
 	def ufw_error(self, error):
-		self.error('ufw: ' + error.output.decode(encoding = 'UTF-8'))	
+		self.error('ufw: ' + error.output.decode(encoding = 'UTF-8'))
 
 if __name__ == '__main__':
 	tmpufw()
