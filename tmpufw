@@ -56,7 +56,7 @@ class tmpufw(object):
 						# Breaks apart line into expiration timestamp and rule
 						timestamp, rule = line.strip("\n").split(' ', 1)
 
-						print(str(datetime.fromtimestamp(timestamp)) + "\t" + rule)
+						print(str(datetime.fromtimestamp(float(timestamp))) + "\t" + rule)
 				except IOError:
 					self.error('unable to read from the rules file: ' + rules_file)
 			else:
@@ -114,7 +114,7 @@ class tmpufw(object):
 
 			# Converts the TTL to a timestamp
 			cal       = Calendar()
-			timestamp = int(mktime(cal.parse(args.ttl)[0]))
+			timestamp = mktime(cal.parse(args.ttl)[0])
 
 			# Writes the rule to the rules file
 			try:
