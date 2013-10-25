@@ -68,7 +68,7 @@ class tmpufw(object):
 				try:
 					handle = open(pid_file, 'w')
 					handle.write(str(getpid()))
-					handle.close();
+					handle.close()
 				except IOError:
 					self.error('unable to create PID file: ' + pid_file)
 
@@ -91,9 +91,11 @@ class tmpufw(object):
 							# Checks if rule has expired
 							if current_time < float(timestamp):
 								handle.write(line)
+								print(time() + "\tskipped rule: " + rule)
 							else:
 								try:
-									self.ufw_execute('delete ' + rule);
+									self.ufw_execute('delete ' + rule)
+									print(time() + "\tdeleted rule: " + rule)
 								except CalledProcessError as error:
 									self.ufw_error(error)
 
