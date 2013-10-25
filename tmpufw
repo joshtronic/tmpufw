@@ -63,7 +63,9 @@ class tmpufw(object):
 				self.error('there are no rules to display')
 		elif args.clean:
 			# Checks for PID file
-			if not path.exists(pid_file):
+			if path.exists(pid_file):
+				self.error(__file__ + ' is already running')
+			else:
 				# Creates the PID file
 				try:
 					handle = open(pid_file, 'w')
@@ -91,11 +93,11 @@ class tmpufw(object):
 							# Checks if rule has expired
 							if current_time < float(timestamp):
 								handle.write(line)
-								print(time() + "\tskipped rule: " + rule)
+								print(str(datetime.fromtimestamp(time())) + "\tskipped rule\t" + rule)
 							else:
 								try:
 									self.ufw_execute('delete ' + rule)
-									print(time() + "\tdeleted rule: " + rule)
+									print(str(datetime.fromtimestamp(time())) + "\tdeleted rule\t" + rule)
 								except CalledProcessError as error:
 									self.ufw_error(error)
 
