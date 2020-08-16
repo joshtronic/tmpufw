@@ -22,7 +22,7 @@ __version__ = '1.0.0'
 
 from argparse import ArgumentParser
 from datetime import datetime
-from os import getpid, makedirs, path, remove
+from os import getpid, makedirs, path, remove, unlink, popen
 from parsedatetime import Calendar
 from shutil import move
 from subprocess import CalledProcessError, check_output, STDOUT
